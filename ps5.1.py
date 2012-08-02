@@ -6,101 +6,24 @@
 #
 # Modify it to use a heap instead
 # 
-
-def shortest_dist_node(dist_so_far, dist_heapq):
-    if len(dist_heapq) > 1:
-        (key, val) = dist_heapq[0]
-        # remove the end of list
-        dist_heapq[0] = dist_heapq.pop(len(dist_heapq) - 1)
-        # update the index mapping
-        del dist_so_far[key]
-        dist_so_far[getk(root(dist_heapq))] = 0
-        down_heapify(dist_so_far, dist_heapq, 0)
-        return (key, val)
-    else:
-        del dist_so_far[getk(root(dist_heapq))]
-        return dist_heapq.pop()
-
-def insert(S, L, (key, val)):
-    L.append((key, val))
-    S[key] = len(L) - 1
-    up_heapify(S, L, len(L) - 1)
-
-def update(S, L, (key, new_val)):
-    L[S[key]] = (key, new_val)
-    up_heapify(S, L, S[key])
-
-def up_heapify(S, L, i):
-    if i is 0:
-        return
-    if getv(L[i]) < getv(L[parent(i)]):
-        swap(S, L, i, parent(i))
-        up_heapify(S, L, parent(i))
-
-def swap(S, L, a, b):
-    (L[a], L[b]) = (L[b], L[a])
-    (S[getk(L[a])], S[getk(L[b])]) = (S[getk(L[b])], S[getk(L[a])])
-
-def down_heapify(S, L, i):
-    if leaf(L, i):
-        return
-    if one_child(L, i):
-        if getv(L[left_child(i)]) < getv(L[i]):
-            swap(S, L, i, left_child(i))
-        return
-    if min(getv(L[left_child(i)]), getv(L[right_child(i)])) < getv(L[i]):
-        if getv(L[left_child(i)]) < getv(L[right_child(i)]):
-            swap(S, L, i, left_child(i))
-            down_heapify(S, L, left_child(i))
-        else:
-            swap(S, L, i, right_child(i))
-            down_heapify(S, L, right_child(i))
-
-def root(L):
-    return L[0]
-
-def leaf(L, index):
-    if left_child(index) >= len(L):
-        return True
-    else:
-        return False
-
-def one_child(L, index):
-    if right_child(index) >= len(L):
-        return True
-    else:
-        return False
-
-def left_child(index):
-    return 2 * index + 1
-
-def right_child(index):
-    return 2 * index + 2
-
-def parent(index):
-    return (index - 1) / 2
-
-def getv((key, val)):
-    return val
-
-def getk((key, val)):
-    return key
+import heapq
 
 def dijkstra(G,v):
-    dist_heapq = [(v, 0)]
-    dist_so_far = {v:0}
-    final_dist = {}
-    while len(final_dist) < len(G):
-        (w, wd) = shortest_dist_node(dist_so_far, dist_heapq)
-        # lock it down!
-        final_dist[w] = wd
-        # iterate all neighbors
-        for x in G[w]:
-            if x not in final_dist:
-                if x not in dist_so_far:
-                    insert(dist_so_far, dist_heapq, (x, final_dist[w] + G[w][x]))
-                elif final_dist[w] + G[w][x] < getv(dist_heapq[dist_so_far[x]]):
-                    update(dist_so_far, dist_heapq, (x, final_dist[w] + G[w][x]))
+    heap, dist_so_far, final_dist = [(0, v)], {v:0}, {}
+    while dist_so_far:
+        (w, k) = heapq.heappop(heap)
+        # jump over deprecated values
+        if k in final_dist or (k in dist_so_far and w > dist_so_far[k]):
+            continue
+        else:
+            del dist_so_far[k]
+            final_dist[k] = w
+        for neighbor in [nb for nb in G[k] if nb not in final_dist]:
+            nw = final_dist[k] + G[k][neighbor]
+            if neighbor not in dist_so_far or nw < dist_so_far[neighbor]:
+                dist_so_far[neighbor] = nw
+                # insert the new value first and jump over the older later
+                heapq.heappush(heap, (final_dist[k] + G[k][neighbor], neighbor))
     return final_dist
 
 ############
@@ -119,7 +42,6 @@ def make_link(G, node1, node2, w):
         (G[node2])[node1] = 0
     (G[node2])[node1] += w
     return G
-
 
 def test():
     # shortcuts
