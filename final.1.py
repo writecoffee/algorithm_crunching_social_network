@@ -10,37 +10,29 @@
 # Assume G is connected
 #
 
-def is_bipartite(G, L, R):
-    for node in L:
-        if not len(G[node].keys()):
-            return False
-        for neighbor in G[node]:
-            if neighbor in L:
-                return False
-    for node in R:
-        if not len(G[node].keys()):
-            return False
-        for neighbor in G[node]:
-            if neighbor in R:
-                return False
-    return True
-
-def k_subset(nodes, k):
-    if len(nodes) < k:
-        return []
-    if len(nodes) == k:
-        return [nodes]
-    if k == 1:
-        return [[i] for i in nodes]
-    return k_subset(nodes[1:], k) + map(lambda x: x + [nodes[0]], k_subset(nodes[1:], k - 1))
+from collections import deque
 
 def bipartite(G):
-    for k in range(1, len(G.keys()) / 2 + 1):
-        for L in k_subset(G.keys(), k):
-            R = set(G.keys()) - set(L)
-            if is_bipartite(G, L, R):
-                return set(L)
-    return None
+    if not G:
+        return None
+    start = next(G.iterkeys())
+    lfrontier, rexplored, L, R = deque([start]), set(), set(), set()
+    while lfrontier:
+        head = lfrontier.popleft()
+        if head in rexplored: 
+            return None
+        if head in L: 
+            continue
+        L.add(head)
+        for successor in G[head]:
+            if successor in rexplored:
+                continue
+            R.add(successor)
+            rexplored.add(successor)
+            for nxt in G[successor]:
+                lfrontier.append(nxt)
+    return L
+
 
 
 ########
