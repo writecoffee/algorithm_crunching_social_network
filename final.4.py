@@ -29,25 +29,8 @@
 import heapq
 from datetime import datetime
 from operator import itemgetter
+import time
 
-def dijkstra(G, v):
-    dist_so_far = {v:0}
-    final_dist = {}
-    heap = [(0, v)]
-    while dist_so_far:
-        (w, k) = heapq.heappop(heap)
-        if k in final_dist or (k in dist_so_far and w > dist_so_far[k]):
-            continue
-        del dist_so_far[k]
-        final_dist[k] = w
-        for neighbor in G[k]:
-            nw = final_dist[k] + G[k][w]
-            if neighbor not in dist_so_far or nw < dist_so_far[neighbor]:
-                heapq.heappush(heap, (nw, neighbor))
-                dist_so_far[neighbor] = nw
-    return final_dist
-
-# get 
 def flights_to_dictionary(flights):
     f = {}
     for flight in flights:
@@ -69,63 +52,33 @@ def compute_flight_graph(flights):
             fG[destin] = {}
         if destin not in fG[depart]:
             fG[depart][destin] = []
-        fG[depart][destin].append((flt_num, dpt_time, arr_time, cost))
+        dpt_time = int(dpt_time.replace(':', ''))
+        arr_time = int(arr_time.replace(':', ''))
+        dpt_m = dpt_time / 100 * 60 + dpt_time % 100
+        arr_m = arr_time / 100 * 60 + arr_time % 100
+        fG[depart][destin].append((flt_num, dpt_m, arr_m, cost))
     return fG
 
-# temporary check time routine
-def check_time(lst_arr_t, nxt_dpt_t):
-#    print nxt_dpt_t, lst_arr_t, nxt_dpt_t > lst_arr_t
-    return nxt_dpt_t > lst_arr_t
-
-def t_last(dpt_time, arr_time):
-    FMT = '%H:%M'
-    tdelta = datetime.strptime(arr_time, FMT) - datetime.strptime(dpt_time, FMT)
-    return str(tdelta)[:-3]
-
-def t_combined(t1, t2):
-    time_parts_1 = [int(s) for s in t1.split(':')]
-    time_parts_2 = [int(s) for s in t2.split(':')]
-    total_mins = time_parts_1[0] * 60 + time_parts_1[1] + time_parts_2[0] * 60 + time_parts_2[1]
-    hr, mn = divmod(total_mins, 60)
-    return str(hr) + ':' + str(mn)
 
 def find_best_flights(flights, origin, destination):
-    cost_so_far = {(origin, 0):0}
-    timing_so_far = {origin:'00:00'}
-    best_flights = {origin:[]}
-    final_cost = {}
-    final_time = {}
-    heap = [(0, '00:00', 'UNDEFINED', 'UNDEFINED', origin, 0)] # (cost, last_t, arr_t, depart, flt_no)
-    while cost_so_far:
-        # k denotes destination name
-        print heap
-        (ct, last, k_arr_t, p_no, k, k_no) = heapq.heappop(heap)
-#        if k in cost_so_far and ct > cost_so_far[k]:
-        #if k in final_cost or
-        if (k in cost_so_far and ct > cost_so_far[k]) or (k in timing_so_far and last > timing_so_far[k]):
-            continue
-        del cost_so_far[(k, k_no)], timing_so_far[(k, k_no)]
-        final_cost[k] = ct
-        final_time[k] = last
-        if p_no != 'UNDEFINED':
-            best_flights[k] = best_flights[p_no] + [k_no]
-        for destin in [de for de in fG[k] if de not in final_cost]:
+    heap = [(0, 0, 0, [origin])]
+    while heap:
+        (pcost, last, pstop_time, path) = heapq.heappop(heap)
+        k = path[-1]
+        if k == destination:
+            return path[1::2]
+        for destin in fG[k].keys():
             for (flt_num, dpt_time, arr_time, cost) in fG[k][destin]:
-                if k_arr_t != 'UNDEFINED' and not check_time(str(k_arr_t), str(dpt_time)):
+                if pstop_time > dpt_time:
                     continue
-                ncost = final_cost[k] + cost
-                if k_arr_t != 'UNDEFINED':
-                    nlast = t_combined(final_time[k], t_last(k_arr_t, arr_time))
+                ncost = pcost + cost
+                if last != 0:
+                    nlast = last + (arr_time - pstop_time)
                 else:
-                    nlast = t_combined(final_time[k], t_last(dpt_time, arr_time))
-                if (destin, flt_num) not in cost_so_far or \
-                  ncost < cost_so_far[(destin, flt_num)] or \
-                  (ncost == cost_so_far[(destin, flt_num)] and nlast < timing_so_far[(destin, flt_num)]):
-                    cost_so_far[(destin, flt_num)] = ncost
-                    timing_so_far[(destin, flt_num)] = nlast
-                    heapq.heappush(heap, (ncost, nlast, arr_time, k, destin, flt_num))
-        #            best_flights[destin] = best_flights[k] + [flt_num]
-    return best_flights
+                    nlast = arr_time - dpt_time
+                npath = path + [flt_num, destin]
+                heapq.heappush(heap, (ncost, nlast, arr_time, npath))
+    return None
 
 #
 # Here is a fictious flight schedule that is roughly based on routes
@@ -338,31 +291,21 @@ flight_dict = flights_to_dictionary(all_flights)
 fG = compute_flight_graph(all_flights)
 fno_dict = dict((f_no, (dept, dest, dept_t, dest_t, cost)) for f_no, dept, dest, dept_t, dest_t, cost in all_flights)
 
-#flight_dict = flights_to_dictionary(test_flights)
-#fG = compute_flight_graph(test_flights)
-#fno_dict = dict((f_no, (dept, dest, dept_t, dest_t, cost)) for f_no, dept, dest, dept_t, dest_t, cost in test_flights)
-
-flight_dict = flights_to_dictionary(all_flights2)
-fG = compute_flight_graph(all_flights2)
-fno_dict = dict((f_no, (dept, dest, dept_t, dest_t, cost)) for f_no, dept, dest, dept_t, dest_t, cost in all_flights2)
-
 def test():
     flights = find_best_flights(all_flights, 'Mt Magnet', 'Fitzroy Crossing')
-#    print flights['Fitzroy Crossing']
-    print 'expected'
-    for fli in [314, 803, 348, 530, 112]:
-        print fno_dict[fli]
-    print flights
-    for fli in flights['Fitzroy Crossing']:
-        print fno_dict[fli]
     assert flights == [314, 803, 348, 530, 112]
 
     flights = find_best_flights(all_flights, 'Leonora', 'Fitzroy Crossing')
     assert flights == None
 
     flights = find_best_flights(all_flights, 'Meekatharra', 'Wiluna')
+    print "actual flights:", flights
+    for fli in flights:
+        print fno_dict[fli]
+    print "expected:"
+    for fli in [391, 459]:
+        print fno_dict[fli]
     assert flights == [391, 459]
-
 
 def test2():
     print flight_dict
@@ -377,6 +320,6 @@ def test3():
     print flights
     assert flights == [2, 4]
 
-#test()
+test()
 #test2()
-test3()
+#test3()
