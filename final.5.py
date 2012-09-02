@@ -10,11 +10,11 @@
 # global variables
 #
 
+global cnn_comp
 cnn_comp = {}
 
 def process_graph(G):
     i = 0
-    to_cnn = {}
     visited = {}
     for u in G:
         if u not in visited:
