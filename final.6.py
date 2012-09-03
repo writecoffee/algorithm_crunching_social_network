@@ -29,7 +29,7 @@ def create_labels(binarytreeG, root):
         cparent = frontier.pop(0)
         for child in binarytreeG[cparent]:
             if child not in labels:
-                labels[child] = {}
+                labels[child] = {child: 0}
                 weight = binarytreeG[cparent][child]
                 labels[child][cparent] = weight
                 # make use of the labels already computed
@@ -92,6 +92,7 @@ def test():
     labels = create_labels(tree, 1)
     print labels
     distances = get_distances(tree, labels)
+    print distances
     assert distances[1][2] == 1
     assert distances[1][4] == 2
     print distances[8][7]
