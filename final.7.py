@@ -66,7 +66,7 @@ def create_labels(treeG):
         for child in treeG[cen]:
             if child not in cens_nodes:
                 label_tree(child)
-    # BFS routine for tagging each 'child' node with its sub-center node
+    # BFS routine for tagging each descendant node with its sub-center node
     def label_sub(sub_cen):
         if sub_cen not in labels:
             labels[sub_cen] = {}
