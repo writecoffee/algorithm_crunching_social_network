@@ -1,4 +1,4 @@
-#  
+#
 # This is the same problem as "Distance Oracle I" except that instead of
 # only having to deal with binary trees, the assignment asks you to
 # create labels for all tree graphs.
@@ -27,52 +27,72 @@
 #
 import random
 import math
-#import pdb
+import pdb
 import random
 
-def check_center(treeG, center):
-#    pdb.set_trace()
-    visited = {center: True}
-    height = 0
-    p, q = [center], []
-    while True:
-        while p:
-            v = p.pop(0)
-            for n in treeG[v]:
-                if n not in visited:
-                    visited[n] = True
-                    q += [n]
-        height += 1
-        p, q = q, p
-        if height > (int)(math.ceil(math.log(len(treeG.keys()), 2))):
-            print height
-            return False
-        if height <= (int)(math.ceil(math.log(len(treeG.keys()), 2))) and not p:
-            return True
+def count_nodes(treeG, node):
+    # count all sub-nodes including itself
+    cnts = {}
+    visited = {}
+    cnts[node] = count_nodes_rec(treeG, node, cnts, visited)
+    return cnts
+
+def count_nodes_rec(treeG, node, cnts, visited):
+    visited[node] = True
+    frontier = [node]
+    cnts[node] = 1
+    for v in treeG[node]:
+        if v not in visited:
+            cnts[node] += count_nodes_rec(treeG, v, cnts, visited)
+    return cnts[node]
 
 def create_labels(treeG):
-    # BFS for the binary tree, meanwhile labeling each node in each level
-    ran_nodes = treeG.keys()
-    random.shuffle(ran_nodes, random.random)
-    for center in ran_nodes:
-        print center
-        if not check_center(treeG, center):
-            continue
-        labels = {center: {center: 0}}
-        frontier = [center]
+    # find center node via rotation
+    def find_cen(treeG, tmt_root, cnts):
+        if cnts[tmt_root] == 1:
+            return tmt_root
+        mcc, mc = max((cnts[v], v) for v in treeG[tmt_root] if v not in cens_nodes)
+        # center node found!
+        if cnts[tmt_root] - mcc >= mcc:
+            return tmt_root
+        # rotate 'tmt_root' to mc
+        cnts[mc] += cnts[tmt_root] - mcc
+        cnts[tmt_root] -= mcc
+        return find_cen(treeG, mc, cnts)
+    # recursively finding center node for each 'sub-tree'
+    def label_tree(tmt_root):
+        cen = find_cen(treeG, tmt_root, cnts)
+        label_sub(cen)
+        for child in treeG[cen]:
+            if child not in cens_nodes:
+                label_tree(child)
+    # BFS routine for tagging each 'child' node with its sub-center node
+    def label_sub(sub_cen):
+        if sub_cen not in labels:
+            labels[sub_cen] = {}
+        labels[sub_cen][sub_cen] = 0
+        cens_nodes[sub_cen] = True
+        frontier = [sub_cen]
+        visited = {}
         while frontier:
-            ccenter = frontier.pop(0)
-            for nxt in treeG[ccenter]:
-                if nxt not in labels:
-                    labels[nxt] = {nxt: 0}
-                    weight = treeG[ccenter][nxt]
-                    labels[nxt][ccenter] = weight
-                    # make use of the labels already computed
-                    for ancestor in labels[ccenter]:
-                        labels[nxt][ancestor] = weight + labels[ccenter][ancestor]
-                    frontier += [nxt]
-        return labels
-    return None
+            v = frontier.pop(0)
+            for neighbor in treeG[v]:
+                if neighbor not in visited and neighbor not in cens_nodes:
+                    visited[neighbor] = True
+                    frontier += [neighbor]
+                    if neighbor not in labels:
+                        labels[neighbor] = {neighbor: 0}
+                    labels[neighbor][sub_cen] = treeG[v][neighbor] + labels[v][sub_cen]
+    #pdb.set_trace()
+    cens_nodes = {}
+    labels = {}
+    tmt_root = iter(treeG).next()
+    cnts = count_nodes(treeG, tmt_root)
+    label_tree(tmt_root)
+    return labels
+
+
+
 
 #######
 # Testing
@@ -130,7 +150,6 @@ def test():
     print labels
     if labels:
         distances = get_distances(tree, labels)
-        print distances
     assert distances[1][2] == 1
     assert distances[1][4] == 2
     assert distances[1][2] == 1
@@ -159,7 +178,6 @@ def test2():
     labels = create_labels(tree)
     print labels
     distances = get_distances(tree, labels)
-
     assert distances[1][2] == 1
     assert distances[1][3] == 2
     assert distances[1][13] == 12
