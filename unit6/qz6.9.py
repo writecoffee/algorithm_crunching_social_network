@@ -11,13 +11,50 @@ def long_and_simple_path(G,u,v,l):
     v: ending node
     l: minimum length of path
     """
+    def long_and_simple_decision(G,u,v,l):
+        """
+        inner function
+        """
+        def check_path(G,path):
+            # for each edge in current permutation
+            for i in range(len(path)-1):
+                # if not in edge table, than no path guaranteed
+                if path[i+1] not in G[path[i]]: return False
+            return True
+    
+        # return all permutations of a sequence list
+        def all_perms(seq):
+            if len(seq) == 0: return [[]]
+            if len(seq) == 1: return [seq, []]
+            most = all_perms(seq[1:])
+            first = seq[0]
+            rest = []
+            for perm in most:
+                for i in range(len(perm)+1):
+                    rest.append(perm[0:i] + [first] + perm[i:])
+            return most + rest
+        """
+        end of inner function
+        """
+
+        if l == 0:
+            return False
+        n = len(G)
+        perms = all_perms(G.keys())
+        print perms
+        for perm in perms:
+            # check path
+            if (len(perm) >= l and check_path(G,perm) and perm[0] == u and perm[len(perm)-1] == v):
+                return True
+        return False
+
     if not long_and_simple_decision(G,u,v,l):
         return False
     # Otherwise, build and return the path
     for node1 in G:
         for node2 in G[node1].keys():
             G = break_link(G, node1, node2)
-            # check if it's dispensable
+            # check if current edge is dispensable
             if not long_and_simple_decision(G, u, v, l):
                 G = make_link(G, node1, node2)
     path = [u]
@@ -65,32 +102,5 @@ flights = [(1,2),(1,3),(2,3),(2,6),(2,4),(2,5),(3,6),(4,5)]
 G = {}
 for (x,y) in flights: make_link(G,x,y)
 
-def all_perms(seq):
-    if len(seq) == 0: return [[]]
-    if len(seq) == 1: return [seq, []]
-    most = all_perms(seq[1:])
-    first = seq[0]
-    rest = []
-    for perm in most:
-        for i in range(len(perm)+1):
-            rest.append(perm[0:i] + [first] + perm[i:])
-    return most + rest
-
-def check_path(G,path):
-    for i in range(len(path)-1):
-        if path[i+1] not in G[path[i]]: return False
-    return True
-    
-def long_and_simple_decision(G,u,v,l):
-    if l == 0:
-        return False
-    n = len(G)
-    perms = all_perms(G.keys())
-    for perm in perms:
-        # check path
-        if (len(perm) >= l and check_path(G,perm) and perm[0] == u 
-            and perm[len(perm)-1] == v): 
-            return True
-    return False
 
 print long_and_simple_path(G, 1, 5, 4)
