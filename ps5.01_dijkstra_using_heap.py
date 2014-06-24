@@ -6,27 +6,30 @@
 #
 # Modify it to use a heap instead
 # 
+
 import heapq
 
 def dijkstra(G,v):
-    heap, dist_so_far, final_dist = [(0, v)], {v:0}, {}
-    while dist_so_far:
-        (w, k) = heapq.heappop(heap)
-        # jump over deprecated values
-        if k in final_dist or (k in dist_so_far and w > dist_so_far[k]):
-            continue
-        else:
-            del dist_so_far[k]
-            final_dist[k] = w
-        for neighbor in [nb for nb in G[k] if nb not in final_dist]:
-            nw = final_dist[k] + G[k][neighbor]
-            if neighbor not in dist_so_far or nw < dist_so_far[neighbor]:
-                dist_so_far[neighbor] = nw
-                # insert the new value first and jump over the older later
-                heapq.heappush(heap, (final_dist[k] + G[k][neighbor], neighbor))
-    return final_dist
+    heap, TX, X = [(0, v)], {v:0}, {}
 
-############
+    while heap:
+        (w, k) = heapq.heappop(heap)
+
+        # jump over deprecated values
+        if k in X or w > TX[k]:
+            continue
+
+        X[k] = w
+
+        for neighbor in G[k]:
+            nw = X[k] + G[k][neighbor]
+            if neighbor not in X and (neighbor not in TX or nw < TX[neighbor]):
+                TX[neighbor] = nw
+                heapq.heappush(heap, (nw, neighbor))
+
+    return X
+
+#
 # 
 # Test
 
@@ -44,7 +47,6 @@ def make_link(G, node1, node2, w):
     return G
 
 def test():
-    # shortcuts
     (a,b,c,d,e,f,g) = ('A', 'B', 'C', 'D', 'E', 'F', 'G')
     triples = ((a,c,3),(c,b,10),(a,b,15),(d,b,9),(a,d,4),(d,f,7),(d,e,3), 
                (e,g,1),(e,f,5),(f,g,2),(b,f,1))
@@ -55,7 +57,5 @@ def test():
     for elem in 'ABCDEFG':
         dist = dijkstra(G, elem)
         print dist
-#    assert dist[g] == 8 #(a -> d -> e -> g)
-#    assert dist[b] == 11 #(a -> d -> e -> g -> f -> b)
 
 test()
